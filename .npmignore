@@ -1,0 +1,7 @@
+.eslintrc.json
+*.tgz
+.travis.yml
+xunit.xml
+test
+coverage
+.npmignore
