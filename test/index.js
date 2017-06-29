@@ -15,6 +15,7 @@ let fs = require("fs"),
 const originalExecSync = childProcess.execSync;
 const originalConsoleError = console.error;
 const originalExistsSync = fs.existsSync;
+const originalReadFileSync = fs.readFileSync;
 
 describe("getPath", () => {
 
@@ -23,6 +24,7 @@ describe("getPath", () => {
 		childProcess.execSync = originalExecSync;
 		console.error = originalConsoleError;
 		fs.existsSync = originalExistsSync;
+		fs.readFileSync = originalReadFileSync;
 	});
 
 	// platform independant tests. Execute them by simulating all supported platforms, but results should be the same.
@@ -173,13 +175,77 @@ describe("getPath", () => {
 				assert.deepEqual(result, path.join(executableDirName, "node_modules", packageName));
 			});
 
+			it("returns correct result when where result is correct, and package is added to PATH via its bin dir", () => {
+				const packageName = "test1",
+					executableName = "test1.js",
+					executableDirName = path.join("C:", "Users", "username", "nativescript-cli", "bin"),
+					whereResult = path.join(executableDirName, executableName);
+
+				fs.existsSync = (filePath) => {
+					return filePath.indexOf("package.json") !== -1;
+				};
+
+				fs.readFileSync = (filePath) => {
+					if (filePath.indexOf("package.json") !== -1) {
+						return JSON.stringify({
+							"name": packageName
+						});
+					}
+
+					return "";
+				};
+
+				childProcess.execSync = (command) => {
+					if (command.indexOf("where") !== -1) {
+						return whereResult;
+					}
+
+					return null;
+				};
+
+				const result = index.getPath(packageName, executableName);
+				assert.deepEqual(result, path.join(path.dirname(executableDirName)));
+			});
+
+			it("returns null when package is added to PATH via its bin dir, but the name in package.json is incorrect", () => {
+				const packageName = "test1",
+					executableName = "test1.js",
+					executableDirName = path.join("C:", "Users", "username", "nativescript-cli", "bin"),
+					whereResult = path.join(executableDirName, executableName);
+
+				fs.existsSync = (filePath) => {
+					return filePath.indexOf("package.json") !== -1;
+				};
+
+				fs.readFileSync = (filePath) => {
+					if (filePath.indexOf("package.json") !== -1) {
+						return JSON.stringify({
+							"name": "invalidName"
+						});
+					}
+
+					return "";
+				};
+
+				childProcess.execSync = (command) => {
+					if (command.indexOf("where") !== -1) {
+						return whereResult;
+					}
+
+					return null;
+				};
+
+				const result = index.getPath(packageName, executableName);
+				assert.deepEqual(result, null);
+			});
+
 			it("returns correct result when where result returns multiple lines correct", () => {
 				const packageName = "test1",
 					executableName = "test1.js",
 					executableDirName = path.join("C:", "Users", "username", "AppData", "Roaming", "npm"),
 					invalidName = "invalidName",
-					invalidLineOfWhereResult = path.join(executableDirName, invalidName, executableName),
-					whereResult = invalidLineOfWhereResult + "\n" + invalidLineOfWhereResult + "\r\n"  + path.join(executableDirName, executableName);
+					invalidLineOfWhereResult = path.join(executableDirName, invalidName, invalidName, executableName),
+					whereResult = invalidLineOfWhereResult + "\n" + invalidLineOfWhereResult + "\r\n" + path.join(executableDirName, executableName);
 
 				fs.existsSync = (filePath) => {
 					if (filePath && filePath.indexOf(invalidName) !== -1) {
@@ -348,6 +414,82 @@ describe("getPath", () => {
 						const result = index.getPath(packageName, executableName);
 						assert.deepEqual(result, null);
 					});
+
+					it("returns correct result when which result is correct, and package is added to PATH via its bin dir", () => {
+						const packageName = "test1",
+							executableName = "test1.js",
+							executableDirName = path.join("/usr", "username", "repository_name", "bin"),
+							whichResult = path.join(executableDirName, executableName),
+							lsLResult = `lrwxrwxrwx 1 rvladimirov rvladimirov 52 Oct 20 14:51 ${whichResult} -> incorrect`;
+
+						fs.existsSync = (filePath) => {
+							return filePath.indexOf("package.json") !== -1;
+						};
+
+						childProcess.execSync = (command) => {
+
+							if (command.indexOf("ls -l") !== -1) {
+								return lsLResult;
+							}
+
+							if (command.indexOf("which") !== -1) {
+								return whichResult;
+							}
+
+							return null;
+						};
+
+						fs.readFileSync = (filePath) => {
+							if (filePath.indexOf("package.json") !== -1) {
+								return JSON.stringify({
+									"name": packageName
+								});
+							}
+
+							return "";
+						};
+
+						const result = index.getPath(packageName, executableName);
+						assert.deepEqual(result, path.dirname(executableDirName));
+					});
+
+					it("returns null when package is added to PATH via its bin dir, but the name in package.json is incorrect", () => {
+						const packageName = "test1",
+							executableName = "test1.js",
+							executableDirName = path.join("/usr", "username", "repository_name", "bin"),
+							whichResult = path.join(executableDirName, executableName),
+							lsLResult = `lrwxrwxrwx 1 rvladimirov rvladimirov 52 Oct 20 14:51 ${whichResult} -> incorrect`;
+
+						fs.existsSync = (filePath) => {
+							return filePath.indexOf("package.json") !== -1;
+						};
+
+						childProcess.execSync = (command) => {
+
+							if (command.indexOf("ls -l") !== -1) {
+								return lsLResult;
+							}
+
+							if (command.indexOf("which") !== -1) {
+								return whichResult;
+							}
+
+							return null;
+						};
+
+						fs.readFileSync = (filePath) => {
+							if (filePath.indexOf("package.json") !== -1) {
+								return JSON.stringify({
+									"name": "invalid name"
+								});
+							}
+
+							return "";
+						};
+
+						const result = index.getPath(packageName, executableName);
+						assert.deepEqual(result, null);
+					});
 				}
 			});
 		});
@@ -355,7 +497,7 @@ describe("getPath", () => {
 
 	it("throws error when process.platform is not valid", () => {
 		require("../lib/process-wrapper").getProcessPlatform = () => "1";
-		assert.throws( () => index.getPath("test1", "test1"), "OS '1' is not supported" );
+		assert.throws(() => index.getPath("test1", "test1"), "OS '1' is not supported");
 	});
 
 });
