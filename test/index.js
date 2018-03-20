@@ -86,7 +86,7 @@ describe("getPath", () => {
 
 	const getCorrectResultFromNpmPrefix = (npmConfigPrefix, packageName) => {
 		fs.existsSync = () => true;
-
+		fs.readFileSync = () => JSON.stringify({ name: packageName });
 		childProcess.execSync = (command) => {
 			if (command.indexOf("get prefix") !== -1) {
 				return npmConfigPrefix;
@@ -171,8 +171,53 @@ describe("getPath", () => {
 					return null;
 				};
 
+				fs.readFileSync = (filePath) => {
+					if (filePath.indexOf("package.json") !== -1) {
+						return JSON.stringify({
+							"name": packageName
+						});
+					}
+
+					return "";
+				};
+
 				const result = index.getPath(packageName, executableName);
 				assert.deepEqual(result, path.join(executableDirName, "node_modules", packageName));
+			});
+
+			it("returns correct result when yarn is used", () => {
+				const packageName = "test1",
+					executableName = "test1.cmd",
+					yarnDirPath = path.join("C:", "Users", "username", "AppData", "Roaming", "Local", "Yarn"),
+					executableDirName = path.join(yarnDirPath, "bin"),
+					whereResult = path.join(executableDirName, executableName);
+
+				fs.existsSync = (pathToCheck) => pathToCheck !== path.join(executableDirName, "node_modules", packageName);
+
+				childProcess.execSync = (command) => {
+					if (command.indexOf("where") !== -1) {
+						return whereResult;
+					}
+
+					return null;
+				};
+
+				fs.readFileSync = (filePath) => {
+					if (filePath.indexOf("package.json") !== -1) {
+						return JSON.stringify({
+							"name": packageName
+						});
+					}
+
+					if (path.basename(filePath) === executableName) {
+						return "@\"%~dp0\\..\\Data\\global\\node_modules\\.bin\\test1.cmd\"   %*";
+					}
+
+					return "";
+				};
+
+				const result = index.getPath(packageName, executableName);
+				assert.deepEqual(result, path.join(yarnDirPath, "Data", "global", "node_modules", packageName));
 			});
 
 			it("returns correct result when where result is correct, and package is added to PATH via its bin dir", () => {
@@ -253,6 +298,16 @@ describe("getPath", () => {
 					}
 
 					return true;
+				};
+
+				fs.readFileSync = (filePath) => {
+					if (filePath.indexOf("package.json") !== -1) {
+						return JSON.stringify({
+							"name": packageName
+						});
+					}
+
+					return "";
 				};
 
 				childProcess.execSync = (command) => {
@@ -362,6 +417,16 @@ describe("getPath", () => {
 					const constructData = (packageName, executableName, lsLResult, whichResult) => {
 						fs.existsSync = () => true;
 
+						fs.readFileSync = (filePath) => {
+							if (filePath.indexOf("package.json") !== -1) {
+								return JSON.stringify({
+									"name": packageName
+								});
+							}
+
+							return "";
+						};
+
 						childProcess.execSync = (command) => {
 
 							if (command.indexOf("ls -l") !== -1) {
@@ -437,16 +502,6 @@ describe("getPath", () => {
 							}
 
 							return null;
-						};
-
-						fs.readFileSync = (filePath) => {
-							if (filePath.indexOf("package.json") !== -1) {
-								return JSON.stringify({
-									"name": packageName
-								});
-							}
-
-							return "";
 						};
 
 						const result = index.getPath(packageName, executableName);
