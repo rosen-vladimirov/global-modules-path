@@ -185,7 +185,7 @@ describe("getPath", () => {
 				assert.deepEqual(result, path.join(executableDirName, "node_modules", packageName));
 			});
 
-			it("returns correct result when yarn is used", () => {
+			it("returns correct result when yarn is used on Windows", () => {
 				const packageName = "test1",
 					executableName = "test1.cmd",
 					yarnDirPath = path.join("C:", "Users", "username", "AppData", "Roaming", "Local", "Yarn"),
@@ -217,7 +217,11 @@ describe("getPath", () => {
 				};
 
 				const result = index.getPath(packageName, executableName);
-				assert.deepEqual(result, path.join(yarnDirPath, "Data", "global", "node_modules", packageName));
+				const expectedData = process.platform === "win32" ?
+					path.join(yarnDirPath, "Data", "global", "node_modules", packageName) :
+					path.join(yarnDirPath, "bin\\..\\Data\\global\\node_modules", packageName);
+
+				assert.deepEqual(path.normalize(result), expectedData);
 			});
 
 			it("returns correct result when where result is correct, and package is added to PATH via its bin dir", () => {
@@ -414,10 +418,14 @@ describe("getPath", () => {
 					console.log("Some tests cannot be executed on Windows. PR will execute them on Linux, so don't worry.");
 				} else {
 
-					const constructData = (packageName, executableName, lsLResult, whichResult) => {
+					const constructData = (packageName, executableName, lsLResult, whichResult, readFileResult) => {
 						fs.existsSync = () => true;
 
 						fs.readFileSync = (filePath) => {
+							if (readFileResult !== undefined) {
+								return readFileResult;
+							}
+
 							if (filePath.indexOf("package.json") !== -1) {
 								return JSON.stringify({
 									"name": packageName
@@ -472,9 +480,10 @@ describe("getPath", () => {
 							executableName = "test1.js",
 							executableDirName = path.join("/usr", "local", "node", "bin"),
 							whichResult = path.join(executableDirName, executableName),
-							lsLResult = `lrwxrwxrwx 1 rvladimirov rvladimirov 52 Oct 20 14:51 ${whichResult} -> incorrect`;
+							lsLResult = `lrwxrwxrwx 1 rvladimirov rvladimirov 52 Oct 20 14:51 ${whichResult} -> incorrect`,
+							readFileResult = "{}";
 
-						constructData(packageName, executableName, lsLResult, whichResult);
+						constructData(packageName, executableName, lsLResult, whichResult, readFileResult);
 
 						const result = index.getPath(packageName, executableName);
 						assert.deepEqual(result, null);
@@ -502,6 +511,16 @@ describe("getPath", () => {
 							}
 
 							return null;
+						};
+
+						fs.readFileSync = (filePath) => {
+							if (filePath.indexOf("package.json") !== -1) {
+								return JSON.stringify({
+									"name": packageName
+								});
+							}
+
+							return "";
 						};
 
 						const result = index.getPath(packageName, executableName);
