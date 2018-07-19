@@ -224,6 +224,46 @@ describe("getPath", () => {
 				assert.deepEqual(path.normalize(result), expectedData);
 			});
 
+			it("returns correct result when where result is correct, and package is added to PATH via a .bin dir", () => {
+				const packageName = "test1",
+					executableName = "test1.cmd",
+					nodeModulesDirName = path.join("C:", "Users", "username", "someDir", "node_modules"),
+					executableDirName = path.join(nodeModulesDirName, ".bin"),
+					whereResult = path.join(executableDirName, executableName);
+
+				fs.existsSync = (pathToCheck) => pathToCheck !== path.join(executableDirName, "node_modules", packageName);
+
+				childProcess.execSync = (command) => {
+					if (command.indexOf("where") !== -1) {
+						return whereResult;
+					}
+
+					return null;
+				};
+
+				fs.readFileSync = (filePath) => {
+					if (filePath.indexOf("package.json") !== -1) {
+						return JSON.stringify({
+							"name": packageName
+						});
+					}
+
+					if (path.basename(filePath) === executableName) {
+						return "@\"%~dp0\\..\\test1\\bin\\test1\" %*";
+					}
+
+					return "";
+				};
+
+				const result = index.getPath(packageName, executableName);
+
+				const expectedData = process.platform === "win32" ?
+					path.join(path.dirname(executableDirName), packageName) :
+					path.join(nodeModulesDirName, ".bin\\..\\test1");
+
+				assert.deepEqual(result, expectedData);
+			});
+
 			it("returns correct result when where result is correct, and package is added to PATH via its bin dir", () => {
 				const packageName = "test1",
 					executableName = "test1.js",
