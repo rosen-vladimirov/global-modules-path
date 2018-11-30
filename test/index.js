@@ -475,6 +475,10 @@ describe("getPath", () => {
 							return "";
 						};
 
+						fs.realpathSync = (filePath) => {
+							return filePath;
+						};
+
 						childProcess.execSync = (command) => {
 
 							if (command.indexOf("ls -l") !== -1) {
