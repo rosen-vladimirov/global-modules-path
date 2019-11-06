@@ -25,7 +25,7 @@
   "homepage": "https://github.com/rosen-vladimirov/global-modules-path#readme",
   "devDependencies": {
     "chai": "3.5.0",
-    "eslint": "3.8.1",
+    "eslint": "6.6.0",
     "istanbul": "0.4.5",
     "mocha": "3.1.2",
     "spec-xunit-file": "0.0.1-3"
