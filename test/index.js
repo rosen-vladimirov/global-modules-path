@@ -12,7 +12,7 @@ let processWrapper = require("../lib/process-wrapper");
 let fs = require("fs"),
 	childProcess = require("child_process");
 
-const originalExecSync = childProcess.execSync;
+const originalspawnSync = childProcess.spawnSync;
 const originalConsoleError = console.error;
 const originalExistsSync = fs.existsSync;
 const originalReadFileSync = fs.readFileSync;
@@ -21,7 +21,7 @@ describe("getPath", () => {
 
 	afterEach(() => {
 		processWrapper.getProcessPlatform = () => process.platform;
-		childProcess.execSync = originalExecSync;
+		childProcess.spawnSync = originalspawnSync;
 		console.error = originalConsoleError;
 		fs.existsSync = originalExistsSync;
 		fs.readFileSync = originalReadFileSync;
@@ -41,9 +41,9 @@ describe("getPath", () => {
 					const expectedErrorMessage = "npm throws";
 					let errors = [];
 					console.error = (message) => errors.push(message);
-					childProcess.execSync = (command) => {
-						if (command.indexOf("get prefix") !== -1) {
-							throw new Error(expectedErrorMessage);
+					childProcess.spawnSync = (command, commandArgs) => {
+						if (commandArgs.indexOf("get") !== -1 && commandArgs.indexOf("prefix") !== -1) {
+							return { error: new Error(expectedErrorMessage) };
 						}
 					};
 
@@ -59,7 +59,7 @@ describe("getPath", () => {
 
 					fs.existsSync = () => false;
 
-					childProcess.execSync = (command) => {
+					childProcess.spawnSync = (command) => {
 						if (command.indexOf("get prefix") !== -1) {
 							return npmConfigPrefix;
 						}
@@ -75,7 +75,7 @@ describe("getPath", () => {
 					const packageName = "test1",
 						executableName = "test1.js";
 
-					childProcess.execSync = () => null;
+					childProcess.spawnSync = () => null;
 
 					const result = index.getPath(packageName, executableName);
 					assert.deepEqual(result, null);
@@ -87,9 +87,10 @@ describe("getPath", () => {
 	const getCorrectResultFromNpmPrefix = (npmConfigPrefix, packageName) => {
 		fs.existsSync = () => true;
 		fs.readFileSync = () => JSON.stringify({ name: packageName });
-		childProcess.execSync = (command) => {
-			if (command.indexOf("get prefix") !== -1) {
-				return npmConfigPrefix;
+		fs.realpathSync = (p) => p; 
+		childProcess.spawnSync = (command, commandArgs) => {
+			if (commandArgs.indexOf("get") !== -1 && commandArgs.indexOf("prefix") !== -1) {
+				return { stdout: npmConfigPrefix };
 			}
 		};
 
@@ -105,8 +106,8 @@ describe("getPath", () => {
 		describe("works correctly when npm prefix is used", () => {
 			it("uses npm.cmd for npm executable", () => {
 				let commands = [];
-				childProcess.execSync = (command) => {
-					commands.push(command);
+				childProcess.spawnSync = (command, commandArgs) => {
+					commands.push(`${command} ${(commandArgs || []).join(" ")}`);
 				};
 
 				index.getPath("test1");
@@ -141,9 +142,9 @@ describe("getPath", () => {
 
 				fs.existsSync = () => true;
 
-				childProcess.execSync = (command) => {
+				childProcess.spawnSync = (command) => {
 					if (command.indexOf("where") !== -1) {
-						throw new Error(expectedErrorMessage);
+						return { error: new Error(expectedErrorMessage) };
 					}
 
 					return null;
@@ -163,9 +164,9 @@ describe("getPath", () => {
 
 				fs.existsSync = () => true;
 
-				childProcess.execSync = (command) => {
+				childProcess.spawnSync = (command) => {
 					if (command.indexOf("where") !== -1) {
-						return whereResult;
+						return { stdout: whereResult };
 					}
 
 					return null;
@@ -194,9 +195,9 @@ describe("getPath", () => {
 
 				fs.existsSync = (pathToCheck) => pathToCheck !== path.join(executableDirName, "node_modules", packageName);
 
-				childProcess.execSync = (command) => {
+				childProcess.spawnSync = (command) => {
 					if (command.indexOf("where") !== -1) {
-						return whereResult;
+						return { stdout: whereResult };
 					}
 
 					return null;
@@ -233,9 +234,9 @@ describe("getPath", () => {
 
 				fs.existsSync = (pathToCheck) => pathToCheck !== path.join(executableDirName, "node_modules", packageName);
 
-				childProcess.execSync = (command) => {
+				childProcess.spawnSync = (command) => {
 					if (command.indexOf("where") !== -1) {
-						return whereResult;
+						return { stdout: whereResult };
 					}
 
 					return null;
@@ -284,9 +285,9 @@ describe("getPath", () => {
 					return "";
 				};
 
-				childProcess.execSync = (command) => {
+				childProcess.spawnSync = (command) => {
 					if (command.indexOf("where") !== -1) {
-						return whereResult;
+						return { stdout: whereResult };
 					}
 
 					return null;
@@ -316,9 +317,9 @@ describe("getPath", () => {
 					return "";
 				};
 
-				childProcess.execSync = (command) => {
+				childProcess.spawnSync = (command) => {
 					if (command.indexOf("where") !== -1) {
-						return whereResult;
+						return { stdout: whereResult };
 					}
 
 					return null;
@@ -354,9 +355,9 @@ describe("getPath", () => {
 					return "";
 				};
 
-				childProcess.execSync = (command) => {
+				childProcess.spawnSync = (command) => {
 					if (command.indexOf("where") !== -1) {
-						return whereResult;
+						return { stdout: whereResult };
 					}
 
 					return null;
@@ -380,8 +381,8 @@ describe("getPath", () => {
 
 			it("uses npm for npm executable", () => {
 				let commands = [];
-				childProcess.execSync = (command) => {
-					commands.push(command);
+				childProcess.spawnSync = (command, commandArgs) => {
+					commands.push(`${command} ${(commandArgs || []).join(" ")}`);
 				};
 
 				index.getPath("test1");
@@ -416,7 +417,7 @@ describe("getPath", () => {
 
 					fs.existsSync = () => true;
 
-					childProcess.execSync = (command) => {
+					childProcess.spawnSync = (command) => {
 						if (command.indexOf("which") !== -1) {
 							throw new Error(expectedErrorMessage);
 						}
@@ -440,9 +441,9 @@ describe("getPath", () => {
 
 					fs.existsSync = () => true;
 
-					childProcess.execSync = (command) => {
-						if (command.indexOf("ls -l") !== -1) {
-							throw new Error(expectedErrorMessage);
+					childProcess.spawnSync = (command) => {
+						if (command === "ls") {
+							return { error: new Error(expectedErrorMessage) };
 						}
 
 						return null;
@@ -479,14 +480,14 @@ describe("getPath", () => {
 							return filePath;
 						};
 
-						childProcess.execSync = (command) => {
+						childProcess.spawnSync = (command) => {
 
-							if (command.indexOf("ls -l") !== -1) {
-								return lsLResult;
+							if (command === "ls") {
+								return { stdout: lsLResult };
 							}
 
-							if (command.indexOf("which") !== -1) {
-								return whichResult;
+							if (command == "which") {
+								return { stdout: whichResult };
 							}
 
 							return null;
@@ -544,14 +545,14 @@ describe("getPath", () => {
 							return filePath.indexOf("package.json") !== -1;
 						};
 
-						childProcess.execSync = (command) => {
+						childProcess.spawnSync = (command) => {
 
-							if (command.indexOf("ls -l") !== -1) {
-								return lsLResult;
+							if (command === "ls") {
+								return { stdout: lsLResult };
 							}
 
-							if (command.indexOf("which") !== -1) {
-								return whichResult;
+							if (command == "which") {
+								return { stdout: whichResult };
 							}
 
 							return null;
@@ -582,14 +583,14 @@ describe("getPath", () => {
 							return filePath.indexOf("package.json") !== -1;
 						};
 
-						childProcess.execSync = (command) => {
+						childProcess.spawnSync = (command) => {
 
-							if (command.indexOf("ls -l") !== -1) {
-								return lsLResult;
+							if (command === "ls") {
+								return { stdout: lsLResult };
 							}
 
-							if (command.indexOf("which") !== -1) {
-								return whichResult;
+							if (command == "which") {
+								return { stdout: whichResult };
 							}
 
 							return null;
