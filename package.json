@@ -7,7 +7,7 @@
     "test": "istanbul cover node_modules/mocha/bin/_mocha -- --recursive --reporter spec-xunit-file --timeout 1500 test/",
     "lint": "eslint lib/* test/*",
     "integration-tests:linux": "cd integration-tests && ./linux.sh",
-    "integration-tests:windows": "echo 'no setup'"
+    "integration-tests:windows": "cd integration-tests && ./linux.sh"
   },
   "repository": {
     "type": "git",
