@@ -5,3 +5,4 @@ xunit.xml
 test
 coverage
 .npmignore
+integration-tests

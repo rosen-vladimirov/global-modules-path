@@ -38,3 +38,4 @@ jspm_packages
 
 xunit.xml
 *.tgz
+!integration-tests/local-module/local-module-1.0.0.tgz

@@ -1,0 +1,15 @@
+{
+  "name": "local-module",
+  "version": "1.0.0",
+  "description": "Local package used for testing",
+  "main": "index.js",
+  "bin": {
+    "local-module": "./local.js",
+    "lm": "./local.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rosen Vladimirov",
+  "license": "Apache-2.0"
+}
