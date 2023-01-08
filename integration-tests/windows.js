@@ -7,8 +7,8 @@ describe("Integration tests", () => {
     });
 
     it("finds correct path to executable when package name and executable name differ", () => {
-        const pathToPackage = require("../").getPath("local-module", "lm");
-        assert.deepEqual(pathToPackage.replace(/\/node\/18\..+?\..+?\//, "/node/NODE_VERSION/"), "C:\\npm\\prefix\\node_modules\\local-module");
+        const pathToPackage = require("../").getPath("local-module-2", "lm2");
+        assert.deepEqual(pathToPackage.replace(/\/node\/18\..+?\..+?\//, "/node/NODE_VERSION/"), "C:\\npm\\prefix\\node_modules\\local-module-2");
     });
 
     it("finds correct path to executable when only package name is used", () => {
