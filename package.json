@@ -1,6 +1,6 @@
 {
   "name": "global-modules-path",
-  "version": "2.3.1",
+  "version": "3.0.0",
   "description": "Returns path to globally installed package",
   "main": "./lib/index.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "installed",
     "path"
   ],
-  "author": "Telerik <support@telerik.com>",
+  "author": "Rosen Vladimirov",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/rosen-vladimirov/global-modules-path/issues"
